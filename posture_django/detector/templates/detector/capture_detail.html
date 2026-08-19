@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block topbar_title %}Detalle de captura{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <a href="{% url 'detector:history' %}" class="back-link"><i class="bi bi-arrow-left me-2"></i>Volver al historial</a>
+  <h1 class="page-title">Captura #{{ capture.pk }}</h1>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-7">
+    <div class="card-glass p-0 overflow-hidden">
+      {% if capture.annotated_img %}
+        <img src="{{ capture.annotated_img.url }}" class="w-100" style="border-radius:var(--radius)" alt="Imagen anotada">
+      {% elif capture.image %}
+        <img src="{{ capture.image.url }}" class="w-100" style="border-radius:var(--radius)" alt="Captura">
+      {% else %}
+        <div class="hc-no-img" style="height:300px"><i class="bi bi-image-alt"></i></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-md-5">
+    <div class="card-glass p-4 h-100">
+      <div class="posture-indicator mb-4">
+        <div class="posture-ring" style="border-color:{{ capture.color }}">
+          <i class="bi bi-person-arms-up" style="color:{{ capture.color }}"></i>
+        </div>
+        <div class="posture-info">
+          <span class="posture-label">{{ capture.label }}</span>
+          <span class="posture-conf" style="color:{{ capture.color }}">{{ capture.confidence|floatformat:1 }}% confianza</span>
+        </div>
+      </div>
+
+      <table class="detail-table">
+        <tr><td>Fecha</td><td>{{ capture.created_at|date:"d/m/Y" }}</td></tr>
+        <tr><td>Hora</td><td>{{ capture.created_at|date:"H:i:s" }}</td></tr>
+        <tr><td>Estado</td><td><span class="badge-status {{ capture.status }}">{{ capture.get_status_display }}</span></td></tr>
+        <tr><td>Landmarks</td><td>{% if capture.landmarks_detected %}✅ Detectados{% else %}❌ No detectados{% endif %}</td></tr>
+        <tr><td>Usuario</td><td>{{ capture.user.username }}</td></tr>
+      </table>
+
+      <form method="post" action="{% url 'detector:delete_capture' capture.pk %}" class="mt-4"
+            onsubmit="return confirm('¿Eliminar esta captura?')">
+        {% csrf_token %}
+        <button type="submit" class="ctrl-btn danger w-100">
+          <i class="bi bi-trash3-fill me-2"></i>Eliminar captura
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

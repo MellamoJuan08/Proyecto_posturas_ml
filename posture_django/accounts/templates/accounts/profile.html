@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block topbar_title %}Mi Perfil{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Mi Perfil</h1>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-4">
+    <div class="card-glass text-center p-4">
+      <div class="profile-avatar-lg">{{ user.first_name|first|upper|default:user.username|first|upper }}</div>
+      <h3 class="mt-3 mb-1">{{ user.get_full_name|default:user.username }}</h3>
+      <p class="text-muted small">@{{ user.username }}</p>
+      <p class="text-muted small">{{ user.email }}</p>
+      <hr>
+      <p class="small text-muted mb-0">Miembro desde {{ user.date_joined|date:"d/m/Y" }}</p>
+    </div>
+  </div>
+  <div class="col-md-8">
+    <div class="card-glass p-4">
+      <h5 class="mb-4 fw-bold">Estadísticas globales</h5>
+      <div class="row g-3">
+        <div class="col-6 col-md-3">
+          <div class="stat-mini">
+            <span class="stat-mini-val">{{ stats.total_captures }}</span>
+            <span class="stat-mini-lbl">Total análisis</span>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-mini good">
+            <span class="stat-mini-val">{{ stats.good_postures }}</span>
+            <span class="stat-mini-lbl">Buenas posturas</span>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-mini warning">
+            <span class="stat-mini-val">{{ stats.warning_postures }}</span>
+            <span class="stat-mini-lbl">Regulares</span>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-mini danger">
+            <span class="stat-mini-val">{{ stats.danger_postures }}</span>
+            <span class="stat-mini-lbl">Incorrectas</span>
+          </div>
+        </div>
+      </div>
+      {% if stats.total_captures > 0 %}
+      <div class="mt-4">
+        <div class="d-flex justify-content-between small mb-1">
+          <span>Tasa de buena postura</span>
+          <span class="fw-bold">{{ stats.good_percentage }}%</span>
+        </div>
+        <div class="progress-bar-custom">
+          <div class="progress-fill good" style="width: {{ stats.good_percentage }}%"></div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

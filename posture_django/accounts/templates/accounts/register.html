@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block auth_content %}
+<div class="auth-container">
+  <!-- Left panel -->
+  <div class="auth-visual">
+    <div class="auth-visual-inner">
+      <div class="auth-logo">
+        <i class="bi bi-person-arms-up"></i>
+      </div>
+      <h1 class="auth-tagline">Cuida tu postura,<br>cuida tu salud.</h1>
+      <p class="auth-sub">Crea tu cuenta y comienza a analizar tu postura hoy mismo.</p>
+      <div class="auth-features">
+        <div class="feat-item"><i class="bi bi-graph-up-arrow"></i><span>Estadísticas personales</span></div>
+        <div class="feat-item"><i class="bi bi-clock-history"></i><span>Historial de capturas</span></div>
+        <div class="feat-item"><i class="bi bi-bell-fill"></i><span>Análisis instantáneo</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right panel -->
+  <div class="auth-form-panel">
+    <div class="auth-form-inner">
+      <h2 class="auth-form-title">Crear cuenta</h2>
+      <p class="auth-form-sub">Únete a PostureAI, es gratis</p>
+
+      {% if messages %}
+      {% for message in messages %}
+      <div class="alert-toast alert-{{ message.tags }} mb-3">
+        <i class="bi bi-exclamation-circle-fill"></i> {{ message }}
+      </div>
+      {% endfor %}
+      {% endif %}
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="row g-3">
+          <div class="col-6">
+            <label class="form-label-custom">{{ form.first_name.label }}</label>
+            {{ form.first_name }}
+            {% if form.first_name.errors %}<div class="field-error">{{ form.first_name.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="col-6">
+            <label class="form-label-custom">{{ form.last_name.label }}</label>
+            {{ form.last_name }}
+            {% if form.last_name.errors %}<div class="field-error">{{ form.last_name.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="col-12">
+            <label class="form-label-custom">{{ form.email.label }}</label>
+            {{ form.email }}
+            {% if form.email.errors %}<div class="field-error">{{ form.email.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="col-12">
+            <label class="form-label-custom">{{ form.username.label }}</label>
+            {{ form.username }}
+            {% if form.username.errors %}<div class="field-error">{{ form.username.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="col-6">
+            <label class="form-label-custom">{{ form.password1.label }}</label>
+            {{ form.password1 }}
+            {% if form.password1.errors %}<div class="field-error">{{ form.password1.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="col-6">
+            <label class="form-label-custom">{{ form.password2.label }}</label>
+            {{ form.password2 }}
+            {% if form.password2.errors %}<div class="field-error">{{ form.password2.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="col-12 mt-2">
+            <button type="submit" class="btn-primary-custom w-100">
+              <i class="bi bi-person-check-fill me-2"></i>Crear mi cuenta
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <p class="auth-switch">
+        ¿Ya tienes cuenta?
+        <a href="{% url 'accounts:login' %}">Iniciar sesión</a>
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

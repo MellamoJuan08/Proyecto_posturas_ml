@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block topbar_title %}Historial de capturas{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Historial</h1>
+  <div class="filter-bar">
+    <a href="{% url 'detector:history' %}" class="filter-btn {% if not status_filter %}active{% endif %}">Todos</a>
+    <a href="?status=good" class="filter-btn good {% if status_filter == 'good' %}active{% endif %}">
+      <i class="bi bi-check-circle-fill me-1"></i>Buenas
+    </a>
+    <a href="?status=warning" class="filter-btn warning {% if status_filter == 'warning' %}active{% endif %}">
+      <i class="bi bi-exclamation-triangle-fill me-1"></i>Regulares
+    </a>
+    <a href="?status=danger" class="filter-btn danger {% if status_filter == 'danger' %}active{% endif %}">
+      <i class="bi bi-x-circle-fill me-1"></i>Incorrectas
+    </a>
+  </div>
+</div>
+
+{% if page_obj.object_list %}
+<div class="history-grid">
+  {% for capture in page_obj %}
+  <div class="history-card" data-status="{{ capture.status }}">
+    <div class="history-card-header" style="border-left: 4px solid {{ capture.color }}">
+      <div class="hc-status-dot" style="background:{{ capture.color }}"></div>
+      <div class="hc-info">
+        <span class="hc-label">{{ capture.label }}</span>
+        <span class="hc-time">{{ capture.created_at|date:"d/m/Y · H:i" }}</span>
+      </div>
+      <span class="hc-conf">{{ capture.confidence|floatformat:0 }}%</span>
+    </div>
+
+    {% if capture.annotated_img %}
+    <div class="hc-img-wrapper">
+      <img src="{{ capture.annotated_img.url }}" alt="{{ capture.label }}" class="hc-img" loading="lazy">
+    </div>
+    {% elif capture.image %}
+    <div class="hc-img-wrapper">
+      <img src="{{ capture.image.url }}" alt="{{ capture.label }}" class="hc-img" loading="lazy">
+    </div>
+    {% else %}
+    <div class="hc-no-img"><i class="bi bi-image-alt"></i></div>
+    {% endif %}
+
+    <div class="hc-footer">
+      <span class="hc-landmarks {% if capture.landmarks_detected %}detected{% endif %}">
+        <i class="bi bi-person-bounding-box me-1"></i>
+        {% if capture.landmarks_detected %}Landmarks ✓{% else %}Sin landmarks{% endif %}
+      </span>
+      <a href="{% url 'detector:capture_detail' capture.pk %}" class="hc-btn">Ver detalle</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<div class="pagination-custom">
+  {% if page_obj.has_previous %}
+  <a href="?page={{ page_obj.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="page-btn">
+    <i class="bi bi-chevron-left"></i>
+  </a>
+  {% endif %}
+
+  <span class="page-info">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+
+  {% if page_obj.has_next %}
+  <a href="?page={{ page_obj.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="page-btn">
+    <i class="bi bi-chevron-right"></i>
+  </a>
+  {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty-state">
+  <i class="bi bi-camera-video-off"></i>
+  <h3>No hay capturas</h3>
+  <p>Realiza tu primer análisis desde el dashboard.</p>
+  <a href="{% url 'detector:dashboard' %}" class="btn-primary-custom">Ir al Dashboard</a>
+</div>
+{% endif %}
+{% endblock %}

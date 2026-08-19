@@ -1,0 +1,172 @@
+"""
+Vistas del módulo detector de posturas.
+Adaptadas a la lógica exacta del modelo (3 features, perfil izquierdo).
+"""
+import base64
+import json
+import logging
+from django.contrib.auth.decorators import login_required
+from django.core.files.base import ContentFile
+from django.core.paginator import Paginator
+from django.http import JsonResponse
+from django.shortcuts import render, get_object_or_404, redirect
+from django.utils import timezone
+from django.views.decorators.http import require_http_methods
+
+from .ml_model import posture_model
+from .models import PostureCapture, UserStats
+
+logger = logging.getLogger(__name__)
+
+
+@login_required
+def dashboard(request):
+    stats, _  = UserStats.objects.get_or_create(user=request.user)
+    recent    = PostureCapture.objects.filter(user=request.user)[:5]
+    context   = {
+        'stats':           stats,
+        'recent_captures': recent,
+        'model_loaded':    posture_model.is_loaded,
+        'page_title':      'Dashboard — PostureAI',
+    }
+    return render(request, 'detector/dashboard.html', context)
+
+
+@login_required
+@require_http_methods(['POST'])
+def analyze_frame(request):
+    """
+    Recibe imagen base64, extrae los 3 features con MediaPipe
+    (ang_espalda, ang_cuello, inclinacion) y retorna la predicción.
+    """
+    try:
+        body        = json.loads(request.body)
+        image_data  = body.get('image', '')
+        save_capture= body.get('save', False)
+
+        if not image_data:
+            return JsonResponse({'success': False, 'error': 'No se recibió imagen.'}, status=400)
+
+        # Decodificar base64
+        if ',' in image_data:
+            image_data = image_data.split(',', 1)[1]
+        image_bytes = base64.b64decode(image_data)
+
+        from django.conf import settings
+        if len(image_bytes) > settings.MAX_IMAGE_SIZE:
+            return JsonResponse({'success': False, 'error': 'Imagen demasiado grande.'}, status=400)
+
+        # ── Procesamiento con el modelo ─────────────────────────────────
+        result = posture_model.predict(image_bytes)
+
+        # ── Imagen anotada → base64 para el frontend ────────────────────
+        annotated_b64 = None
+        if result.get('annotated_image'):
+            annotated_b64 = "data:image/jpeg;base64," + base64.b64encode(
+                result['annotated_image']
+            ).decode('utf-8')
+
+        # ── Guardar captura si el usuario lo pidió ──────────────────────
+        capture_id = None
+        if save_capture and result['success']:
+            ts      = timezone.now().strftime('%Y%m%d_%H%M%S')
+            uname   = request.user.username
+            capture = PostureCapture(
+                user                = request.user,
+                label               = result['label'],
+                raw_prediction      = result.get('raw_prediction', ''),
+                confidence          = result['confidence'],
+                status              = result['status'],
+                color               = result['color'],
+                landmarks_detected  = result['landmarks_detected'],
+                in_profile          = result.get('in_profile', False),
+                ang_espalda         = result.get('ang_espalda'),
+                ang_cuello          = result.get('ang_cuello'),
+                inclinacion         = result.get('inclinacion'),
+            )
+            capture.image.save(
+                f"{uname}_{ts}.jpg",
+                ContentFile(image_bytes),
+                save=False,
+            )
+            if result.get('annotated_image'):
+                capture.annotated_img.save(
+                    f"{uname}_{ts}_ann.jpg",
+                    ContentFile(result['annotated_image']),
+                    save=False,
+                )
+            capture.save()
+            capture_id = capture.id
+
+            stats, _ = UserStats.objects.get_or_create(user=request.user)
+            stats.update(result['status'])
+
+        return JsonResponse({
+            'success':            result['success'],
+            'label':              result['label'],
+            'raw_prediction':     result.get('raw_prediction'),
+            'confidence':         result['confidence'],
+            'status':             result['status'],
+            'color':              result['color'],
+            'landmarks_detected': result['landmarks_detected'],
+            'in_profile':         result.get('in_profile', False),
+            'ang_espalda':        result.get('ang_espalda'),
+            'ang_cuello':         result.get('ang_cuello'),
+            'inclinacion':        result.get('inclinacion'),
+            'hint':               result.get('hint'),
+            'annotated_image':    annotated_b64,
+            'capture_id':         capture_id,
+            'error':              result.get('error'),
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'JSON inválido.'}, status=400)
+    except Exception as e:
+        logger.error(f"Error en analyze_frame: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'error': 'Error interno del servidor.'}, status=500)
+
+
+@login_required
+def history(request):
+    captures_qs   = PostureCapture.objects.filter(user=request.user)
+    status_filter = request.GET.get('status', '')
+    if status_filter in ('good', 'danger'):
+        captures_qs = captures_qs.filter(status=status_filter)
+
+    paginator = Paginator(captures_qs, 12)
+    page_obj  = paginator.get_page(request.GET.get('page'))
+    stats, _  = UserStats.objects.get_or_create(user=request.user)
+
+    return render(request, 'detector/history.html', {
+        'page_obj':      page_obj,
+        'stats':         stats,
+        'status_filter': status_filter,
+        'page_title':    'Historial — PostureAI',
+    })
+
+
+@login_required
+def capture_detail(request, pk):
+    capture = get_object_or_404(PostureCapture, pk=pk, user=request.user)
+    return render(request, 'detector/capture_detail.html', {
+        'capture':    capture,
+        'page_title': f'Captura #{pk} — PostureAI',
+    })
+
+
+@login_required
+@require_http_methods(['POST'])
+def delete_capture(request, pk):
+    capture = get_object_or_404(PostureCapture, pk=pk, user=request.user)
+    capture.delete()
+    return redirect('detector:history')
+
+
+@login_required
+def model_status(request):
+    return JsonResponse({
+        'loaded':    posture_model.is_loaded,
+        'mediapipe': posture_model.pose is not None,
+        'features':  3,
+        'classes':   ['buena', 'mala'],
+    })

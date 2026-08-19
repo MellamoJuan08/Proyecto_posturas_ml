@@ -1,0 +1,268 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block topbar_title %}Dashboard{% endblock %}
+
+{% block topbar_actions %}
+<div class="model-badge {% if model_loaded %}model-ok{% else %}model-off{% endif %}">
+    <i class="bi {% if model_loaded %}bi-circle-fill{% else %}bi-circle{% endif %}"></i>
+    {% if model_loaded %}
+        Modelo activo
+    {% else %}
+        Modelo no cargado
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+
+<!-- Stats row -->
+<div class="stats-row mb-4">
+    
+    <div class="stat-card">
+        <div class="stat-icon total">
+            <i class="bi bi-camera-fill"></i>
+        </div>
+        <div class="stat-body">
+            <span class="stat-val">{{ stats.total_captures }}</span>
+            <span class="stat-lbl">Análisis totales</span>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon good">
+            <i class="bi bi-check2-circle"></i>
+        </div>
+        <div class="stat-body">
+            <span class="stat-val">{{ stats.good_postures }}</span>
+            <span class="stat-lbl">Buenas posturas</span>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon danger">
+            <i class="bi bi-x-circle"></i>
+        </div>
+        <div class="stat-body">
+            <span class="stat-val">{{ stats.bad_postures }}</span>
+            <span class="stat-lbl">Malas posturas</span>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon total" style="background:rgba(139,92,246,0.1);color:#a78bfa">
+            <i class="bi bi-percent"></i>
+        </div>
+        <div class="stat-body">
+            <span class="stat-val">{{ stats.good_percentage }}%</span>
+            <span class="stat-lbl">Tasa buenas</span>
+        </div>
+    </div>
+
+</div>
+
+<div class="dashboard-grid">
+
+    <!-- ── Panel cámara ─────────────────────────────── -->
+    <div class="camera-panel">
+
+        <div class="panel-header">
+            <h2 class="panel-title">
+                <i class="bi bi-camera-video-fill me-2"></i>
+                Cámara en vivo
+            </h2>
+            <div class="live-dot" id="liveDot"></div>
+        </div>
+
+        <!-- SELECTOR DE CÁMARA -->
+        <div style="padding:8px 20px;display:flex;align-items:center;gap:10px">
+            <i class="bi bi-camera2" style="color:var(--accent)"></i>
+
+            <label for="cameraSelect"
+                   style="font-size:13px;color:var(--text-3)">
+                Cámara:
+            </label>
+
+            <select id="cameraSelect"
+                    style="flex:1;background:var(--bg);
+                    border:1px solid var(--glass-bd);
+                    border-radius:6px;
+                    color:var(--text);
+                    padding:4px 8px;
+                    font-size:13px"
+                    onchange="changeCamera(this.value)">
+
+                <option value="">Cargando cámaras...</option>
+
+            </select>
+        </div>
+
+        <!-- ── Configurador de tiempo ── -->
+        <div class="tiempo-config">
+            <i class="bi bi-timer me-2" style="color:var(--accent)"></i>
+
+            <span>Alertarme cada</span>
+
+            <input type="number"
+                   id="inputLimiteMinutos"
+                   value="5"
+                   min="1"
+                   max="120"
+                   style="width:60px;
+                   background:var(--bg);
+                   border:1px solid var(--glass-bd);
+                   border-radius:6px;
+                   color:var(--text);
+                   padding:4px 8px;
+                   font-family:var(--font-mono);
+                   font-size:14px;
+                   text-align:center">
+
+            <span>minutos</span>
+        </div>
+
+        <!-- ── Barra de tiempo postural ── -->
+        <div id="tiempoWrapper" style="display:none;padding:10px 20px 0">
+
+            <div style="display:flex;
+                        justify-content:space-between;
+                        font-size:11px;
+                        color:var(--text-3);
+                        font-family:var(--font-mono);
+                        margin-bottom:4px">
+
+                <span>Tiempo en postura actual</span>
+                <span id="tiempoTexto">0:00 / 5:00</span>
+
+            </div>
+
+            <div style="height:6px;
+                        background:var(--bg-3);
+                        border-radius:3px;
+                        overflow:hidden">
+
+                <div id="tiempoFill"
+                     style="height:100%;
+                     width:0%;
+                     border-radius:3px;
+                     background:#22c55e;
+                     transition:width 1s linear">
+                </div>
+
+            </div>
+        </div>
+
+        <div class="camera-wrapper" id="cameraWrapper">
+
+            <div class="camera-placeholder" id="cameraPlaceholder">
+
+                <i class="bi bi-person-bounding-box"
+                   style="font-size:52px;color:var(--accent)">
+                </i>
+
+                <p style="margin:12px 0 4px;font-size:15px;font-weight:600">
+                    Activa la cámara
+                </p>
+
+                <p style="font-size:13px;color:var(--text-3);margin-bottom:20px">
+                    Colócate de <strong>perfil izquierdo</strong> frente a la cámara
+                </p>
+
+                <button class="btn-start-camera" onclick="startCamera()">
+                    <i class="bi bi-camera-video-fill me-2"></i>
+                    Activar cámara
+                </button>
+
+            </div>
+
+            <video id="videoFeed"
+                   autoplay
+                   playsinline
+                   muted
+                   class="camera-video d-none">
+            </video>
+
+            <canvas id="captureCanvas" class="d-none"></canvas>
+
+            <img id="annotatedImg"
+                 class="annotated-preview d-none"
+                 alt="Anotada">
+
+            <div class="video-overlay d-none" id="videoOverlay">
+                <div class="overlay-result">
+                    <span id="overlayLabel">Analizando...</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Instrucción de posición -->
+        <div class="profile-hint-bar">
+            <i class="bi bi-info-circle me-2"></i>
+            Colócate de <strong>perfil izquierdo</strong> · distancia hombro-hombro &lt; 10%
+        </div>
+
+        <div class="camera-controls">
+
+            <button class="ctrl-btn secondary"
+                    id="btnToggleCamera"
+                    onclick="toggleCamera()"
+                    disabled>
+
+                <i class="bi bi-camera-video-off-fill me-2"></i>
+                <span id="cameraLabel">Detener</span>
+
+            </button>
+
+            <button class="ctrl-btn primary"
+                    id="btnCapture"
+                    onclick="captureAndSave()"
+                    disabled>
+
+                <i class="bi bi-camera-fill me-2"></i>
+                Capturar y guardar
+
+            </button>
+
+            <button class="ctrl-btn accent"
+                    id="btnAuto"
+                    onclick="toggleAutoAnalysis()"
+                    disabled>
+
+                <i class="bi bi-play-fill me-2" id="autoIcon"></i>
+                <span id="autoLabel">Análisis continuo</span>
+
+            </button>
+
+        </div>
+
+        <div class="shortcut-bar">
+            <kbd>ESPACIO</kbd> capturar ·
+            <kbd>A</kbd> continuo ·
+            <kbd>ESC</kbd> detener
+        </div>
+
+        {% if not model_loaded %}
+        <div class="model-warning">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>Modelo PKL no cargado.</strong>
+            Coloca <code>modelo_postura.pkl</code> en la raíz del proyecto y reinicia el servidor.
+        </div>
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/camera.js' %}"></script>
+
+<script>
+    const ANALYZE_URL = "{% url 'detector:analyze_frame' %}";
+    const CSRF_TOKEN = "{{ csrf_token }}";
+    const MODEL_LOADED = {{ model_loaded|yesno:"true,false" }};
+</script>
+
+{% endblock %}

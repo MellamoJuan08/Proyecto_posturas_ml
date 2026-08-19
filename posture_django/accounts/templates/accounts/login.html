@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block auth_content %}
+<div class="auth-container">
+  <!-- Left panel -->
+  <div class="auth-visual">
+    <div class="auth-visual-inner">
+      <div class="auth-logo">
+        <i class="bi bi-person-arms-up"></i>
+      </div>
+      <h1 class="auth-tagline">Analiza tu postura<br>en tiempo real.</h1>
+      <p class="auth-sub">Detección inteligente con visión por computador y machine learning.</p>
+      <div class="auth-features">
+        <div class="feat-item"><i class="bi bi-camera-video-fill"></i><span>Cámara web en vivo</span></div>
+        <div class="feat-item"><i class="bi bi-cpu-fill"></i><span>Modelo ML local</span></div>
+        <div class="feat-item"><i class="bi bi-shield-lock-fill"></i><span>Datos privados</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right panel: form -->
+  <div class="auth-form-panel">
+    <div class="auth-form-inner">
+      <h2 class="auth-form-title">Iniciar sesión</h2>
+      <p class="auth-form-sub">Accede a tu cuenta de PostureAI</p>
+
+      {% if messages %}
+      {% for message in messages %}
+      <div class="alert-toast alert-{{ message.tags }} mb-3">
+        <i class="bi bi-exclamation-circle-fill"></i> {{ message }}
+      </div>
+      {% endfor %}
+      {% endif %}
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="form-group mb-4">
+          <label class="form-label-custom">{{ form.username.label }}</label>
+          {{ form.username }}
+          {% if form.username.errors %}
+          <div class="field-error">{{ form.username.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="form-group mb-4">
+          <label class="form-label-custom">{{ form.password.label }}</label>
+          {{ form.password }}
+          {% if form.password.errors %}
+          <div class="field-error">{{ form.password.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <button type="submit" class="btn-primary-custom w-100">
+          <i class="bi bi-arrow-right-circle-fill me-2"></i>Entrar
+        </button>
+      </form>
+
+      <p class="auth-switch">
+        ¿No tienes cuenta?
+        <a href="{% url 'accounts:register' %}">Crear cuenta gratis</a>
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}
