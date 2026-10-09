@@ -98,7 +98,7 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = 'bootstrap5'
 CRISPY_TEMPLATE_PACK = 'bootstrap5'
 
 # ML Model path — coloca tu archivo .pkl aquí
-MODEL_PATH = os.getenv('MODEL_PATH', BASE_DIR / 'modelo_postura (2).pkl')
+MODEL_PATH = os.getenv('MODEL_PATH', BASE_DIR / 'modelo_postura_rf.pkl')
 
 # Max image size for processing (bytes)
 MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5MB
